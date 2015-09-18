@@ -37,7 +37,13 @@ module Sidekiq
       end
 
       rate_limit.exceeded do |delay|
-        worker.class.perform_in(delay, *msg['args'])
+        if batch = worker.batch
+          batch.jobs do
+            worker.class.perform_in(delay, *msg['args'])
+          end
+        else
+          worker.class.perform_in(delay, *msg['args'])
+        end
       end
 
       rate_limit.execute
